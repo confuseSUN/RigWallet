@@ -1,0 +1,24 @@
+[package]
+name = "rig-wallet-tx"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rig-wallet-types = { workspace = true }
+rig-wallet-account = { workspace = true }
+rig-wallet-macro = { workspace = true }
+rig-wallet-vm = { workspace = true }
+rig-core = { workspace = true }
+serde = { workspace = true }
+serde_json = "1"
+
+[dev-dependencies]
+tokio = { workspace = true }
+reqwest = { workspace = true }
+alloy = { workspace = true }
+serde_json = "1"
+dotenvy = { workspace = true }
+
+[features]
+default = ["testnet"]
+testnet = []

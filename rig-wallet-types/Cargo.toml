@@ -1,0 +1,11 @@
+[package]
+name = "rig-wallet-types"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rig-wallet-account = { workspace = true }
+rig-wallet-macro = { workspace = true }
+serde = { workspace = true }
+async-trait = { workspace = true }
+alloy = { workspace = true }

@@ -1,0 +1,34 @@
+[workspace]
+members = [
+    "rig-wallet-types",
+    "rig-wallet-account",
+    "rig-wallet-vm",
+    "rig-wallet-tx",
+    "rig-wallet-macro",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+[workspace.dependencies]
+rig-wallet-types = { path = "rig-wallet-types" }
+rig-wallet-account = { path = "rig-wallet-account" }
+rig-wallet-tx = { path = "rig-wallet-tx" }
+rig-wallet-vm = { path = "rig-wallet-vm" }
+rig-wallet-macro = { path = "rig-wallet-macro" }
+hmac = "0.12"
+sha2 = "0.10"
+k256 = { version = "0.13", features = ["arithmetic"] }
+rand_chacha = { version = "0.9", features = ["os_rng"] }
+serde = { version = "1", features = ["derive"] }
+pbkdf2 = "0.12"
+unicode-normalization = "0.1"
+alloy = { version = "=1.0.36", features = ["full"] }
+async-trait = "0.1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+reqwest = { version = "0.12", features = ["json"] }
+rig-core = "0.39"
+dotenvy = "0.15"
+bitcoin = {version = "0.32", features = ["base64"]}
