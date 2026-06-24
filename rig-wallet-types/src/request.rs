@@ -8,11 +8,16 @@ pub struct TxRequest {
 }
 
 impl TxRequest {
-    pub fn new(to: String, value: u128) -> Self {
+    pub fn new(to: impl Into<String>, value: u128) -> Self {
         Self {
-            to,
+            to: to.into(),
             value,
-            data: vec![],
+            data: Vec::new(),
         }
+    }
+
+    pub fn with_data(mut self, data: impl Into<Vec<u8>>) -> Self {
+        self.data = data.into();
+        self
     }
 }

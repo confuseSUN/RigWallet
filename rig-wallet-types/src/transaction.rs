@@ -1,35 +1,31 @@
+//! Transaction building, signing, and broadcasting.
+
 use async_trait::async_trait;
 
-use crate::{errors::Result, signer::Signer, wallet::Wallet};
+use crate::{
+    errors::Result,
+    wallet::{SignatureOf, Signer},
+};
 
-pub struct TxData {
-    pub payload: Vec<u8>,
-    pub address: String,
-}
-
-impl TxData {
-    pub fn new(payload: Vec<u8>, address: String) -> Self {
-        Self { payload, address }
-    }
-}
+/// Bytes to be signed by the wallet.
+pub type Payload = Vec<u8>;
 
 #[async_trait]
-pub trait Transaction<S: Signer + Send + Sync> {
-    async fn build(&mut self) -> Result<Vec<TxData>>;
+pub trait Transaction<W: Signer + Send + Sync>: Send {
+    async fn build(&mut self) -> Result<Vec<Payload>>;
 
-    async fn build_and_sign(&mut self, wallet: &[Wallet<S>]) -> Result<Vec<S::Signature>> {
-        let msgs = self.build().await?;
-        Ok(msgs
+    async fn sign(&mut self, wallet: &W) -> Result<Vec<SignatureOf<W>>> {
+        let payloads = self.build().await?;
+        payloads
             .iter()
-            .map(|m| {
-                let current_w = wallet
-                    .iter()
-                    .find(|w| w.address == m.address || w.address == format!("0x{}", m.address))
-                    .unwrap();
-                current_w.priv_key.sign(&m.payload)
-            })
-            .collect())
+            .map(|payload| wallet.sign(payload))
+            .collect()
     }
 
-    async fn send(&self, signatures: Vec<S::Signature>) -> Result<String>;
+    async fn send_signed(&self, signatures: Vec<SignatureOf<W>>) -> Result<String>;
+
+    async fn send(&mut self, wallet: &W) -> Result<String> {
+        let signatures = self.sign(wallet).await?;
+        self.send_signed(signatures).await
+    }
 }

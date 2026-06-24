@@ -1,26 +1,45 @@
-use core::fmt;
+use alloy::{
+    hex::FromHexError,
+    network::{Ethereum, UnbuiltTransactionError},
+    primitives::AddressError,
+    signers::{Error as SignerError, local::LocalSignerError},
+    transports::RpcError,
+};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
-    WalletNotFound(String),
+    #[error(transparent)]
+    Account(#[from] rig_wallet_account::Error),
+
+    #[error(transparent)]
+    Address(#[from] AddressError),
+
+    #[error(transparent)]
+    Hex(#[from] FromHexError),
+
+    #[error(transparent)]
+    Signer(#[from] SignerError),
+
+    #[error(transparent)]
+    SignerKey(#[from] LocalSignerError),
+
+    #[error("invalid signature")]
     InvalidSignature,
-    DecodeFailed,
-    RpcFailed(String),
-    SendFailed(String),
-}
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::WalletNotFound(address) => write!(f, "wallet not found for address: {address}"),
-            Error::InvalidSignature => write!(f, "invalid signature"),
-            Error::DecodeFailed => write!(f, "failed to decode signature bytes"),
-            Error::RpcFailed(msg) => write!(f, "rpc request failed: {msg}"),
-            Error::SendFailed(msg) => write!(f, "failed to send transaction: {msg}"),
-        }
-    }
-}
+    #[error("transaction not built; call build() first")]
+    NotBuilt,
 
-impl std::error::Error for Error {}
+    #[error(transparent)]
+    TxBuild(#[from] UnbuiltTransactionError<Ethereum>),
+
+    #[error(transparent)]
+    Rpc(#[from] RpcError<alloy::transports::TransportErrorKind>),
+
+    #[error("invalid RPC URL: {0}")]
+    RpcUrl(#[from] url::ParseError),
+
+    #[error("misconfigured: {0}")]
+    Config(String),
+}
 
 pub type Result<T> = core::result::Result<T, Error>;

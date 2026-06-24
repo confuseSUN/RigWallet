@@ -2,9 +2,9 @@ use core::fmt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Error {
-    /// Mnemonic only support 12/15/18/21/24 words.
+    /// Mnemonic only supports 12/15/18/21/24 words.
     BadWordCount(usize),
-    /// Entropy was not a multiple of 32 bits or between 128-256n bits in length.
+    /// Entropy was not a multiple of 32 bits or between 128-256 bits in length.
     BadEntropyBitCount(usize),
     /// Mnemonic contains an unknown word.
     UnknownWord(String),
@@ -13,7 +13,7 @@ pub enum Error {
     /// The mnemonic has an invalid child number.
     InvalidChildNum,
     /// The path must start with "m/".
-    BadDrivePath,
+    BadDerivationPath,
     /// Invalid secret key.
     InvalidSecretKey,
 }
@@ -24,7 +24,7 @@ impl fmt::Display for Error {
             Error::BadWordCount(count) => {
                 write!(
                     f,
-                    "BIP-0039 mnemonic only supports 12/15/18/21/24 words: {count}"
+                    "BIP-39 mnemonic only supports 12/15/18/21/24 words: {count}"
                 )
             }
             Error::BadEntropyBitCount(count) => write!(
@@ -33,11 +33,15 @@ impl fmt::Display for Error {
             ),
             Error::UnknownWord(word) => write!(f, "mnemonic contains an unknown word: {word}"),
             Error::InvalidChecksum => write!(f, "mnemonic has an invalid checksum"),
-            Error::InvalidChildNum => write!(f, "Childnum is invalid"),
-            Error::BadDrivePath => write!(f, "The driver path likes m/.."),
-            Error::InvalidSecretKey => write!(f, "Invalid secret key"),
+            Error::InvalidChildNum => write!(f, "invalid child number in derivation path"),
+            Error::BadDerivationPath => {
+                write!(f, "derivation path must start with \"m/\"")
+            }
+            Error::InvalidSecretKey => write!(f, "invalid secret key"),
         }
     }
 }
 
 impl std::error::Error for Error {}
+
+pub type Result<T> = core::result::Result<T, Error>;

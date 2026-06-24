@@ -75,7 +75,7 @@ impl FromStr for DerivationPath {
         let mut parts = path.split('/');
 
         if parts.next() != Some("m") {
-            return Err(Error::BadDrivePath);
+            return Err(Error::BadDerivationPath);
         }
 
         let mut path_vec = Vec::new();

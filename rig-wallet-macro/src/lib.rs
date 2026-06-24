@@ -70,9 +70,9 @@ pub(crate) fn chain_config_helper(
            #[automatically_derived]
            impl ChainConfig for #config_name {
             #[cfg(not(feature = "testnet"))]
-            const RPC : &'static [&'static str] = &[#mainnet_rpc];
+            const RPC: &'static str = #mainnet_rpc;
             #[cfg(feature = "testnet")]
-            const RPC : &'static [&'static str] = &[#testnet_rpc];
+            const RPC: &'static str = #testnet_rpc;
 
             #[cfg(not(feature = "testnet"))]
             const CHAIN_ID: Option<u64> = #mainnet_chainid;
@@ -88,7 +88,7 @@ pub fn token_config_derive(input: proc_macro::TokenStream) -> proc_macro::TokenS
     let ast: syn::DeriveInput = syn::parse(input).unwrap();
 
     let mainnet_token =
-        fetch_attr("mainnet_token", &ast.attrs).expect("Please supply a token attribute");
+        fetch_attr("mainnet_token", &ast.attrs).expect("Please supply a mainnet_token attribute");
     let mainnet_token = LitStr::new(&mainnet_token, Span::call_site());
 
     let testnet_token = fetch_attr("testnet_token", &ast.attrs).unwrap_or_default();

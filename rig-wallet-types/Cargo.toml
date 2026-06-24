@@ -9,3 +9,5 @@ rig-wallet-macro = { workspace = true }
 serde = { workspace = true }
 async-trait = { workspace = true }
 alloy = { workspace = true }
+thiserror = { workspace = true }
+url = { workspace = true }
