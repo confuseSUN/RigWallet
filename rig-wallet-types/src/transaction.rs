@@ -12,20 +12,14 @@ pub type Payload = Vec<u8>;
 
 #[async_trait]
 pub trait Transaction<W: Signer + Send + Sync>: Send {
-    async fn build(&mut self) -> Result<Vec<Payload>>;
+    async fn build(&mut self) -> Result<Payload>;
 
-    async fn sign(&mut self, wallet: &W) -> Result<Vec<SignatureOf<W>>> {
-        let payloads = self.build().await?;
-        payloads
-            .iter()
-            .map(|payload| wallet.sign(payload))
-            .collect()
-    }
+    async fn sign(&mut self) -> Result<SignatureOf<W>>;
 
-    async fn send_signed(&self, signatures: Vec<SignatureOf<W>>) -> Result<String>;
+    async fn send_signed(&self, signature: SignatureOf<W>) -> Result<String>;
 
-    async fn send(&mut self, wallet: &W) -> Result<String> {
-        let signatures = self.sign(wallet).await?;
-        self.send_signed(signatures).await
+    async fn send(&mut self) -> Result<String> {
+        let signature = self.sign().await?;
+        self.send_signed(signature).await
     }
 }

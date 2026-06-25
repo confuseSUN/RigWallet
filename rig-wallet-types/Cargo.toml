@@ -11,3 +11,7 @@ async-trait = { workspace = true }
 alloy = { workspace = true }
 thiserror = { workspace = true }
 url = { workspace = true }
+solana-sdk = { workspace = true }
+solana-client = { workspace = true }
+solana-address = { workspace = true }
+tokio = { workspace = true }

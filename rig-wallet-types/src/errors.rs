@@ -40,6 +40,15 @@ pub enum Error {
 
     #[error("misconfigured: {0}")]
     Config(String),
+
+    #[error("wallet not in scope; call WalletContext::with_evm or with_svm first")]
+    WalletNotInScope,
+
+    #[error(transparent)]
+    SolanaClient(#[from] solana_client::client_error::ClientError),
+
+    #[error(transparent)]
+    SolanaAddress(#[from] solana_address::error::ParseAddressError),
 }
 
 pub type Result<T> = core::result::Result<T, Error>;

@@ -4,10 +4,11 @@ use alloy::{
     primitives::{Address, U256},
     providers::{Provider, ProviderBuilder},
     rpc::types::TransactionRequest,
+    sol,
 };
 use async_trait::async_trait;
 use rig_wallet_types::{
-    chain_config::ChainConfig,
+    chain_config::{ChainConfig, TokenConfig},
     errors::Result,
     evm_transfer_builder,
     transaction::{Payload, Transaction},
@@ -16,29 +17,44 @@ use rig_wallet_types::{
 
 use crate::evm::{GAS_LIMIT_DENOMINATOR, GAS_LIMIT_NUMERATOR, broadcast_signed_tx};
 
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    EvmToken,
+    "ERC20.json"
+);
+
 evm_transfer_builder!(
-    tool(description = "Transfer ETH to a given address."),
-    Eip1559Transfer,
+    tool(description = "Transfer ERC20 tokens to a given address."),
+    ERC20Transfer,
     ChainConfig,
+    TokenConfig,
 );
 
 #[async_trait]
-impl<C: ChainConfig> Transaction<EVMWallet> for Eip1559Transfer<C> {
+impl<C: ChainConfig, T: TokenConfig> Transaction<EVMWallet> for ERC20Transfer<C, T> {
     async fn build(&mut self) -> Result<Payload> {
         let from: Address = WalletContext::evm()?.address().parse()?;
         let to: Address = self.request.to.parse()?;
+        let token: Address = T::TOKEN.parse()?;
 
         let url = C::RPC.parse()?;
         let provider = ProviderBuilder::new().connect_http(url);
         let nonce = provider.get_transaction_count(from).pending().await?;
         let fees = provider.estimate_eip1559_fees().await?;
 
+        let contract = EvmToken::new(token, provider.clone());
+        let data = contract
+            .transfer(to, U256::from(self.request.value))
+            .calldata()
+            .clone();
+
         let tx = TransactionRequest::default()
             .with_from(from)
-            .with_to(to)
+            .with_to(token)
             .with_nonce(nonce)
             .with_chain_id(C::chain_id()?)
-            .with_value(U256::from(self.request.value))
+            .with_input(data)
             .with_max_priority_fee_per_gas(fees.max_priority_fee_per_gas)
             .with_max_fee_per_gas(fees.max_fee_per_gas);
 

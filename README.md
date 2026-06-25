@@ -2,7 +2,7 @@
 
 RigWallet gives AI agents real wallets, enabling them to sign and execute on-chain actions through natural language.
 
-Built on top of [rig-core](https://github.com/0xPlaygrounds/rig), RigWallet bridges the gap between LLM reasoning and blockchain execution — from a simple prompt to a broadcasted transaction.
+Built on top of [rig](https://github.com/0xPlaygrounds/rig), RigWallet bridges the gap between LLM reasoning and blockchain execution — from a simple prompt to a broadcasted transaction.
 
 
 ### Example

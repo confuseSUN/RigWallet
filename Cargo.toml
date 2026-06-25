@@ -35,6 +35,7 @@ alloy = { version = "=1.0.36", default-features = false, features = [
     "provider-http",
     "rpc-types",
     "signer-local",
+    "contract",
 ] }
 async-trait = "0.1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
@@ -44,3 +45,10 @@ dotenvy = "0.15"
 bitcoin = {version = "0.32", features = ["base64"]}
 thiserror = "2"
 url = "2"
+solana-sdk = "3.0.0"
+solana-client = "3.1.4"
+solana-address = { version = "2.6.1", features = ["decode", "std"] }
+solana-system-interface =  { version = "3.0.0", features = ["bincode"] }
+spl-associated-token-account = "8.0.0"
+spl-token-interface = "2.0.0"
+spl-memo-interface = "2.0.0"

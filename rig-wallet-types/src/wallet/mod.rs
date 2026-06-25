@@ -1,8 +1,15 @@
+use std::sync::Arc;
+
 use crate::errors::Result;
 
+pub mod context;
 pub mod evm;
+pub mod svm;
 
-pub use evm::{derive_evm_wallet, EVMWallet, EvmSignature};
+pub use context::WalletContext;
+
+pub use evm::{EVMWallet, EvmSignature, derive_evm_wallet};
+pub use svm::{SVMWallet, SvmSignature, derive_svm_wallet};
 
 pub trait Signer {
     type Signature;
@@ -10,16 +17,25 @@ pub trait Signer {
     fn sign(&self, msg: &[u8]) -> Result<Self::Signature>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Wallet<S: Signer> {
-    signer: S,
+    signer: Arc<S>,
     address: String,
+}
+
+impl<S: Signer> Clone for Wallet<S> {
+    fn clone(&self) -> Self {
+        Self {
+            signer: Arc::clone(&self.signer),
+            address: self.address.clone(),
+        }
+    }
 }
 
 impl<S: Signer> Wallet<S> {
     pub fn new(signer: S, address: impl Into<String>) -> Self {
         Self {
-            signer,
+            signer: Arc::new(signer),
             address: address.into(),
         }
     }
@@ -42,3 +58,7 @@ impl<S: Signer> Signer for Wallet<S> {
 }
 
 pub type SignatureOf<T> = <T as Signer>::Signature;
+
+pub trait ProviderWallet {
+    fn from_env() -> Self;
+}
