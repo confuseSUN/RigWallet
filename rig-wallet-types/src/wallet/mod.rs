@@ -17,6 +17,12 @@ pub trait Signer {
     fn sign(&self, msg: &[u8]) -> Result<Self::Signature>;
 }
 
+/// Trait for wallet initialization from environment.
+pub trait ProviderWallet: Sized {
+    /// Loads the wallet from environment variables.
+    fn from_env() -> Result<Self>;
+}
+
 #[derive(Debug)]
 pub struct Wallet<S: Signer> {
     signer: Arc<S>,
@@ -58,7 +64,3 @@ impl<S: Signer> Signer for Wallet<S> {
 }
 
 pub type SignatureOf<T> = <T as Signer>::Signature;
-
-pub trait ProviderWallet {
-    fn from_env() -> Self;
-}

@@ -13,5 +13,7 @@ thiserror = { workspace = true }
 url = { workspace = true }
 solana-sdk = { workspace = true }
 solana-client = { workspace = true }
+solana-program-error = { workspace = true }
 solana-address = { workspace = true }
 tokio = { workspace = true }
+zeroize = "1"

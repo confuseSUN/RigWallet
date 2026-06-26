@@ -8,6 +8,7 @@ use solana_sdk::{
     signature::{Keypair, Signature},
     signer::Signer,
 };
+use zeroize::Zeroize;
 
 use crate::{
     errors::Result,
@@ -17,11 +18,9 @@ use crate::{
 pub type SVMWallet = Wallet<Keypair>;
 
 impl ProviderWallet for SVMWallet {
-    fn from_env() -> Self {
-        let mnemonic =
-            std::env::var("MNEMONIC").expect("MNEMONIC environment variable must be set");
+    fn from_env() -> Result<Self> {
+        let mnemonic = std::env::var("MNEMONIC")?;
         derive_svm_wallet(&mnemonic, "m/44'/501'/0'/0'")
-            .expect("Failed to derive SVM wallet from mnemonic")
     }
 }
 
@@ -36,13 +35,24 @@ impl super::Signer for Keypair {
     }
 }
 
+/// Derive an SVM wallet from a BIP-39 mnemonic and BIP-44 derivation path.
+///
+/// # Security
+///
+/// The extended private key's secret bytes are zeroized in memory after use
+/// to minimize exposure of sensitive cryptographic material.
 pub fn derive_svm_wallet(phrase: &str, path: &str) -> Result<SVMWallet> {
     let mnemonic = Mnemonic::from_phrase(phrase)?;
-    let seed = &mnemonic.to_seed("");
-    let path: DerivationPath = path.parse().unwrap();
+    let seed = mnemonic.to_seed("");
+    let path: DerivationPath = path.parse()?;
+    let mut extended_key = ExtendedPrivKey::derive(&seed, path, Curve::Ed25519)?;
 
-    let e_priv_key = ExtendedPrivKey::derive(seed, path, Curve::Ed25519)?;
-    let keypair = Keypair::new_from_array(e_priv_key.secret_key);
+    // Create keypair from the secret key bytes
+    let keypair = Keypair::new_from_array(extended_key.secret_key);
     let address = keypair.pubkey().to_string();
+
+    // Zero out sensitive data in memory
+    extended_key.secret_key.zeroize();
+
     Ok(Wallet::new(keypair, address))
 }

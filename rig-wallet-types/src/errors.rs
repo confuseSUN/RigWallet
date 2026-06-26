@@ -1,3 +1,5 @@
+use std::env::VarError;
+
 use alloy::{
     hex::FromHexError,
     network::{Ethereum, UnbuiltTransactionError},
@@ -29,6 +31,12 @@ pub enum Error {
     #[error("transaction not built; call build() first")]
     NotBuilt,
 
+    #[error("token decimal not set")]
+    TokenDecimalNotSet,
+
+    #[error(transparent)]
+    SolanaProgram(#[from] solana_program_error::ProgramError),
+
     #[error(transparent)]
     TxBuild(#[from] UnbuiltTransactionError<Ethereum>),
 
@@ -49,6 +57,9 @@ pub enum Error {
 
     #[error(transparent)]
     SolanaAddress(#[from] solana_address::error::ParseAddressError),
+
+    #[error("environment variable error: {0}")]
+    EnvVar(#[from] VarError),
 }
 
 pub type Result<T> = core::result::Result<T, Error>;

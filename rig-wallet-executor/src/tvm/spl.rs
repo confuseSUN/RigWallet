@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use rig_wallet_types::{
+    Error,
     chain_config::{ChainConfig, TokenConfig},
     errors::Result,
     transaction::{Payload, Transaction},
@@ -60,9 +61,8 @@ impl<C: ChainConfig, T: TokenConfig> Transaction<SVMWallet> for SplTransfer<C, T
             &from,
             &[&from],
             self.request.value as u64,
-            T::DECIMAL.unwrap(),
-        )
-        .unwrap();
+            T::DECIMAL.ok_or(Error::TokenDecimalNotSet)?,
+        )?;
         instructions.push(transfer_instruction);
 
         let mut transaction = SdkTransaction::new_with_payer(&instructions, Some(&from));

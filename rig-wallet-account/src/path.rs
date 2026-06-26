@@ -95,35 +95,18 @@ pub struct ExtendedPrivKey {
 }
 
 impl ExtendedPrivKey {
+    /// Derives an extended private key from a seed and derivation path.
+    ///
+    /// # Security
+    ///
+    /// The returned `ExtendedPrivKey` contains sensitive cryptographic material.
+    /// Callers should zeroize `secret_key` after use.
     pub fn derive(
         seed: &[u8],
         path: DerivationPath,
         curve: Curve,
     ) -> Result<ExtendedPrivKey, Error> {
-        let (secret_key, chain_code) = match curve {
-            Curve::K256 => {
-                let mut hmac: Hmac<Sha512> =
-                    Hmac::new_from_slice(curve.seed_key()).expect("seed is always correct.");
-                hmac.update(seed);
-                let hash = hmac.finalize().into_bytes();
-                let (secret_key, chain_code) = hash.split_at(32);
-                (
-                    secret_key.try_into().unwrap(),
-                    chain_code.try_into().unwrap(),
-                )
-            }
-            Curve::Ed25519 => {
-                let mut hmac: Hmac<Sha512> =
-                    Hmac::new_from_slice(curve.seed_key()).expect("seed is always correct.");
-                hmac.update(seed);
-                let hash = hmac.finalize().into_bytes();
-                let (secret_key, chain_code) = hash.split_at(32);
-                (
-                    secret_key.try_into().unwrap(),
-                    chain_code.try_into().unwrap(),
-                )
-            }
-        };
+        let (secret_key, chain_code) = Self::derive_master_key(seed, curve)?;
 
         let mut sk = ExtendedPrivKey {
             curve,
@@ -138,46 +121,23 @@ impl ExtendedPrivKey {
         Ok(sk)
     }
 
+    /// Derives the master key from a seed using HMAC-SHA512.
+    fn derive_master_key(seed: &[u8], curve: Curve) -> Result<([u8; 32], [u8; 32]), Error> {
+        let mut hmac: Hmac<Sha512> = Hmac::new_from_slice(curve.seed_key())?;
+        hmac.update(seed);
+        let hash = hmac.finalize().into_bytes();
+        let (secret_key, chain_code) = hash.split_at(32);
+
+        let sk: [u8; 32] = secret_key.try_into()?;
+        let cc: [u8; 32] = chain_code.try_into()?;
+
+        Ok((sk, cc))
+    }
+
     pub fn child(&self, child: &ChildNumber) -> Result<ExtendedPrivKey, Error> {
         let (secret_key, chain_code) = match self.curve {
-            Curve::K256 => {
-                let mut bytes = Vec::new();
-                if child.is_normal() {
-                    let sk = SecretKey::from_slice(&self.secret_key)
-                        .map_err(|_| Error::InvalidSecretKey)?;
-                    let pk = sk.public_key().to_encoded_point(true);
-                    bytes.extend(pk.as_bytes());
-                } else {
-                    bytes.push(0);
-                    bytes.extend(&self.secret_key);
-                }
-                bytes.extend(&child.to_bytes());
-
-                let mut hmac: Hmac<Sha512> =
-                    Hmac::new_from_slice(&self.chain_code).expect("seed is always correct.");
-                hmac.update(&bytes);
-                let i = hmac.finalize().into_bytes();
-                let (il, ir) = i.split_at(32);
-
-                let child_sk =
-                    tweak_key(&self.secret_key, il).map_err(|_| Error::InvalidSecretKey)?;
-
-                (child_sk, ir.try_into().unwrap())
-            }
-            Curve::Ed25519 => {
-                let mut bytes = Vec::new();
-                bytes.push(0);
-                bytes.extend_from_slice(&self.secret_key);
-                bytes.extend_from_slice(&child.to_bytes());
-
-                let mut hmac: Hmac<Sha512> =
-                    Hmac::new_from_slice(&self.chain_code).expect("seed is always correct.");
-                hmac.update(&bytes);
-                let i = hmac.finalize().into_bytes();
-                let (il, ir) = i.split_at(32);
-
-                (il.try_into().unwrap(), ir.try_into().unwrap())
-            }
+            Curve::K256 => self.child_k256(child)?,
+            Curve::Ed25519 => self.child_ed25519(child)?,
         };
 
         Ok(ExtendedPrivKey {
@@ -186,14 +146,55 @@ impl ExtendedPrivKey {
             chain_code,
         })
     }
+
+    fn child_k256(&self, child: &ChildNumber) -> Result<([u8; 32], [u8; 32]), Error> {
+        let mut bytes = Vec::new();
+        if child.is_normal() {
+            let sk = SecretKey::from_slice(&self.secret_key)?;
+            let pk = sk.public_key().to_encoded_point(true);
+            bytes.extend(pk.as_bytes());
+        } else {
+            bytes.push(0);
+            bytes.extend(&self.secret_key);
+        }
+        bytes.extend(&child.to_bytes());
+
+        let mut hmac: Hmac<Sha512> = Hmac::new_from_slice(&self.chain_code)?;
+        hmac.update(&bytes);
+        let i = hmac.finalize().into_bytes();
+        let (il, ir) = i.split_at(32);
+
+        let child_sk = tweak_key(&self.secret_key, il)?;
+
+        let cc: [u8; 32] = ir.try_into()?;
+
+        Ok((child_sk, cc))
+    }
+
+    fn child_ed25519(&self, child: &ChildNumber) -> Result<([u8; 32], [u8; 32]), Error> {
+        let mut bytes = Vec::new();
+        bytes.push(0);
+        bytes.extend_from_slice(&self.secret_key);
+        bytes.extend_from_slice(&child.to_bytes());
+
+        let mut hmac: Hmac<Sha512> = Hmac::new_from_slice(&self.chain_code)?;
+        hmac.update(&bytes);
+        let i = hmac.finalize().into_bytes();
+        let (il, ir) = i.split_at(32);
+
+        let sk: [u8; 32] = il.try_into()?;
+        let cc: [u8; 32] = ir.try_into()?;
+
+        Ok((sk, cc))
+    }
 }
 
 pub fn tweak_key(key1: &[u8], key2: &[u8]) -> Result<[u8; 32], Error> {
-    let sk1 = SecretKey::from_slice(key1).map_err(|_| Error::InvalidSecretKey)?;
-    let sk2 = SecretKey::from_slice(key2).map_err(|_| Error::InvalidSecretKey)?;
+    let sk1 = SecretKey::from_slice(key1)?;
+    let sk2 = SecretKey::from_slice(key2)?;
     let new_secret_key = sk1
         .to_nonzero_scalar()
         .add(&sk2.to_nonzero_scalar())
         .to_bytes();
-    Ok(new_secret_key.try_into().unwrap())
+    Ok(new_secret_key.into())
 }

@@ -4380,6 +4380,7 @@ dependencies = [
  "serde",
  "sha2",
  "unicode-normalization",
+ "zeroize",
 ]
 
 [[package]]
@@ -4421,10 +4422,12 @@ dependencies = [
  "serde",
  "solana-address 2.6.1",
  "solana-client",
+ "solana-program-error",
  "solana-sdk",
  "thiserror 2.0.18",
  "tokio",
  "url",
+ "zeroize",
 ]
 
 [[package]]

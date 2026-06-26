@@ -33,7 +33,7 @@ mod tests {
 
         let request = TxRequest::new("0x3677572639a6b17725f04946b45A12E6443344F5", 10);
 
-        WalletContext::with_evm(Arc::new(EVMWallet::from_env()), async {
+        WalletContext::with_evm(Arc::new(EVMWallet::from_env().unwrap()), async {
             let mut usdc = ETHUSDC::new().with_request(request);
             let tx_hash = usdc.send().await.unwrap();
             println!("tx_hash: {tx_hash}");

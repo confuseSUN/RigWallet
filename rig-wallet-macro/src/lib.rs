@@ -137,18 +137,34 @@ mod transaction_builder;
     attributes(mainnet_rpc, testnet_rpc, mainnet_chainid, testnet_chainid)
 )]
 pub fn chain_config_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let ast: syn::DeriveInput = syn::parse(input).unwrap();
+    let ast: syn::DeriveInput = match syn::parse(input) {
+        Ok(ast) => ast,
+        Err(e) => return e.to_compile_error().into(),
+    };
 
-    let mainnet_rpc =
-        fetch_attr("mainnet_rpc", &ast.attrs).expect("Please supply a mainnet_rpc attribute");
+    let mainnet_rpc = match fetch_attr("mainnet_rpc", &ast.attrs) {
+        Some(rpc) => rpc,
+        None => {
+            return syn::Error::new(
+                Span::call_site(),
+                "ChainConfig requires #[mainnet_rpc = \"...\"] attribute",
+            )
+            .to_compile_error()
+            .into();
+        }
+    };
 
     let testnet_rpc: String = fetch_attr("testnet_rpc", &ast.attrs).unwrap_or_default();
 
-    let mainnet_chainid: Option<u64> = fetch_attr("mainnet_chainid", &ast.attrs)
-        .map(|x| x.parse().expect("mainnet_chainid should be a number"));
+    let mainnet_chainid: Option<u64> = fetch_attr("mainnet_chainid", &ast.attrs).map(|x| {
+        x.parse()
+            .expect("mainnet_chainid must be a valid u64 number")
+    });
 
-    let testnet_chainid: Option<u64> = fetch_attr("testnet_chainid", &ast.attrs)
-        .map(|x| x.parse().expect("testnet_chainid should be a number"));
+    let testnet_chainid: Option<u64> = fetch_attr("testnet_chainid", &ast.attrs).map(|x| {
+        x.parse()
+            .expect("testnet_chainid must be a valid u64 number")
+    });
 
     chain_config_helper(
         mainnet_rpc,
@@ -218,13 +234,25 @@ pub(crate) fn chain_config_helper(
 /// | `tool_name` | no | Agent tool name; defaults to the struct ident |
 #[proc_macro_derive(
     TokenConfig,
-    attributes(mainnet_token, testnet_token, decimal, tool_name),
+    attributes(mainnet_token, testnet_token, decimal, tool_name)
 )]
 pub fn token_config_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let ast: syn::DeriveInput = syn::parse(input).unwrap();
+    let ast: syn::DeriveInput = match syn::parse(input) {
+        Ok(ast) => ast,
+        Err(e) => return e.to_compile_error().into(),
+    };
 
-    let mainnet_token =
-        fetch_attr("mainnet_token", &ast.attrs).expect("Please supply a mainnet_token attribute");
+    let mainnet_token = match fetch_attr("mainnet_token", &ast.attrs) {
+        Some(token) => token,
+        None => {
+            return syn::Error::new(
+                Span::call_site(),
+                "TokenConfig requires #[mainnet_token = \"...\"] attribute",
+            )
+            .to_compile_error()
+            .into();
+        }
+    };
     let mainnet_token_lit = LitStr::new(&mainnet_token, Span::call_site());
 
     let testnet_token = fetch_attr("testnet_token", &ast.attrs).unwrap_or(mainnet_token);
@@ -233,8 +261,10 @@ pub fn token_config_derive(input: proc_macro::TokenStream) -> proc_macro::TokenS
     let tool_name = fetch_attr("tool_name", &ast.attrs).unwrap_or_else(|| ast.ident.to_string());
     let tool_name = LitStr::new(&tool_name, Span::call_site());
 
-    let decimal: Option<u8> =
-        fetch_attr("decimal", &ast.attrs).map(|x| x.parse().expect("decimal should be a number"));
+    let decimal: Option<u8> = fetch_attr("decimal", &ast.attrs).map(|x| {
+        x.parse()
+            .expect("decimal must be a valid u8 number (0-255)")
+    });
     let decimal = match decimal {
         Some(id) => {
             let lit_id = proc_macro2::Literal::u8_unsuffixed(id);

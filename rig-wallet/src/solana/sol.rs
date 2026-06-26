@@ -25,7 +25,7 @@ mod tests {
 
         let request = TxRequest::new("ExMUofCj1sqMzPyy6od6Ak6CvnzhqpZQ7aQ9JWxdaiAc", 10);
 
-        WalletContext::with_svm(Arc::new(SVMWallet::from_env()), async {
+        WalletContext::with_svm(Arc::new(SVMWallet::from_env().unwrap()), async {
             let mut sol = SOL::new().with_request(request);
             let tx_hash = sol.send().await.unwrap();
             println!("tx_hash: {tx_hash}");

@@ -8,24 +8,32 @@ use rig_wallet_types::wallet::{ProviderWallet, SVMWallet, WalletContext};
 async fn main() {
     dotenvy::dotenv().ok();
 
-    let wallet = Arc::new(SVMWallet::from_env());
+    let wallet = match SVMWallet::from_env() {
+        Ok(w) => Arc::new(w),
+        Err(e) => {
+            eprintln!("Failed to load wallet: {}", e);
+            std::process::exit(1);
+        }
+    };
 
     WalletContext::with_svm(wallet, async {
-        let agent = create_solana_agent(None).unwrap();
+        let agent = create_solana_agent(None).expect("Failed to create agent");
 
-        let response = agent
+        match agent
             .prompt("send 0.0001 sol to ExMUofCj1sqMzPyy6od6Ak6CvnzhqpZQ7aQ9JWxdaiAc")
             .await
-            .unwrap();
-        println!("{response}");
+        {
+            Ok(response) => println!("{}", response),
+            Err(e) => eprintln!("Transaction failed: {}", e),
+        }
 
-        println!("--------------------------------------------");
-
-        let response = agent
+        match agent
             .prompt("send 0.0001 usdc to ExMUofCj1sqMzPyy6od6Ak6CvnzhqpZQ7aQ9JWxdaiAc")
             .await
-            .unwrap();
-        println!("{response}");
+        {
+            Ok(response) => println!("{}", response),
+            Err(e) => eprintln!("Transaction failed: {}", e),
+        }
     })
     .await;
 }

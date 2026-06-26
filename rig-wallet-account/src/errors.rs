@@ -1,4 +1,8 @@
+use core::array::TryFromSliceError;
 use core::fmt;
+
+use hmac::digest::InvalidLength;
+use k256::elliptic_curve::Error as K256Error;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Error {
@@ -16,6 +20,8 @@ pub enum Error {
     BadDerivationPath,
     /// Invalid secret key.
     InvalidSecretKey,
+    /// Invalid HMAC key length.
+    InvalidHmacKeyLength,
 }
 
 impl fmt::Display for Error {
@@ -38,10 +44,29 @@ impl fmt::Display for Error {
                 write!(f, "derivation path must start with \"m/\"")
             }
             Error::InvalidSecretKey => write!(f, "invalid secret key"),
+            Error::InvalidHmacKeyLength => write!(f, "invalid HMAC key length"),
         }
     }
 }
 
 impl std::error::Error for Error {}
+
+impl From<K256Error> for Error {
+    fn from(_: K256Error) -> Self {
+        Error::InvalidSecretKey
+    }
+}
+
+impl From<InvalidLength> for Error {
+    fn from(_: InvalidLength) -> Self {
+        Error::InvalidHmacKeyLength
+    }
+}
+
+impl From<TryFromSliceError> for Error {
+    fn from(_: TryFromSliceError) -> Self {
+        Error::InvalidSecretKey
+    }
+}
 
 pub type Result<T> = core::result::Result<T, Error>;
